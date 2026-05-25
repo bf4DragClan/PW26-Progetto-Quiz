@@ -1,6 +1,6 @@
 <?php
 $host = 'localhost';
-$db   = 'nome_tuo_db';
+$db   = 'devhive';
 $user = 'root';
 $pass = ''; 
 $charset = 'utf8mb4';
