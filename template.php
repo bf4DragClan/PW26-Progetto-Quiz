@@ -1,0 +1,529 @@
+<?php
+require_once __DIR__ . '/Includes/db.php';
+?>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Quiz - CRUD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f0ff 0%, #ede7f6 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ===== NAVIGAZIONE ===== */
+        .navigation {
+            background: linear-gradient(135deg, #8b5fbf 0%, #9b6bc5 100%);
+            padding: 0;
+            box-shadow: 0 4px 15px rgba(139, 95, 191, 0.2);
+        }
+
+        .navigation ul {
+            list-style: none;
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navigation li {
+            flex: 1;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .navigation li:last-child {
+            border-right: none;
+        }
+
+        .navigation a {
+            display: block;
+            padding: 18px 20px;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .navigation a:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* ===== MAIN WRAPPER ===== */
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 220px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(139, 95, 191, 0.12);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar-content h2 {
+            font-size: 18px;
+            color: #8b5fbf;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+
+        .filter-section {
+            margin-top: 15px;
+        }
+
+        .btn-search {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #8b5fbf, #9b6bc5);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(139, 95, 191, 0.3);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e6d9f0;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        /* ===== CONTENT ===== */
+        .content {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 8px 24px rgba(139, 95, 191, 0.12);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-header {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .content-header h2 {
+            color: #8b5fbf;
+            font-size: 28px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .content-body {
+            flex: 1;
+            color: #5a4a7a;
+        }
+
+        /* ===== TABLE STYLES ===== */
+        .data-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        thead {
+            background-color: #f0e6f6;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            color: #8b5fbf;
+            font-weight: 600;
+            border-bottom: 2px solid #e6d9f0;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e6d9f0;
+            color: #5a4a7a;
+            word-break: break-word;
+        }
+
+        tr:hover {
+            background-color: #f9f7fc;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background-color: #8b5fbf;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #7a4fa8;
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background-color: #e67e7e;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #d66a6a;
+            transform: translateY(-2px);
+        }
+
+        .btn-view {
+            background-color: #6ba3d9;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view:hover {
+            background-color: #5a92c7;
+            transform: translateY(-2px);
+        }
+
+        /* ===== MODAL STYLES ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 8px 24px rgba(139, 95, 191, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e6d9f0;
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            color: #8b5fbf;
+            margin: 0;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .close-modal:hover {
+            color: #8b5fbf;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #5a4a7a;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            font-size: 13px;
+            border: 2px solid #e6d9f0;
+            border-radius: 6px;
+            font-family: inherit;
+            color: #5a4a7a;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #8b5fbf;
+            box-shadow: 0 0 0 3px rgba(139, 95, 191, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .btn-submit, .btn-cancel {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #8b5fbf, #9b6bc5);
+            color: white;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(139, 95, 191, 0.3);
+        }
+
+        .btn-cancel {
+            background-color: #f0e6f6;
+            color: #8b5fbf;
+        }
+
+        .btn-cancel:hover {
+            background-color: #e6d9f0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #9b7fc9;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-wrapper {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: static;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .content-header h2 {
+                font-size: 22px;
+            }
+
+            .navigation a {
+                padding: 15px 10px;
+                font-size: 13px;
+            }
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: linear-gradient(135deg, #8b5fbf 0%, #9b6bc5 100%);
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 -4px 15px rgba(139, 95, 191, 0.2);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .footer-left {
+            flex: 1;
+            text-align: left;
+        }
+
+        .footer-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .footer-right {
+            flex: 1;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- Modal -->
+    <div id="crudModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Aggiungi Nuovo</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="crudForm" onsubmit="handleSubmit(event)">
+                <div id="formFields"></div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-submit">Salva</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Navigazione -->
+        <nav class="navigation">
+            <ul>
+                <li><a onclick="showTab('quiz')">Quiz</a></li>
+                <li><a onclick="showTab('domanda')">Domande</a></li>
+                <li><a onclick="showTab('risposta')">Risposte</a></li>
+                <li><a onclick="showTab('partecipazione')">Partecipazioni</a></li>
+                <li><a onclick="showTab('utente')">Utenti</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Sidebar Sinistra -->
+            <aside class="sidebar">
+                <div class="sidebar-content">
+                    <h2>Gestione<br>CRUD</h2>
+                    <div class="filter-section">
+                        <button class="btn-search" onclick="openCreateModal()">+ Aggiungi Nuovo</button>
+                        <hr style="margin: 15px 0; border: none; border-top: 1px solid #e6d9f0;">
+                        <input type="text" id="searchInput" placeholder="Cerca..." class="search-box">
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Contenuto Principale -->
+            <main class="content">
+                <div class="content-header">
+                    <h2 id="tabTitle">Gestione Quiz</h2>
+                </div>
+                <div class="content-body">
+                    <div id="contentTable" class="data-table-wrapper">
+                        <!-- Tabella dinamica -->
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <span class="footer-left">© 2025 Quiz Application</span>
+                <span class="footer-center">Gestione Quiz e Domande</span>
+                <span class="footer-right">Powered by PHP & MySQL</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/api.js?v=<?php echo time(); ?>"></script>
+    <script src="js/crud.js?v=<?php echo time(); ?>"></script>
+</body>
+</html>
