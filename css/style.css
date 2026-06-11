@@ -1,113 +1,214 @@
-/* === PALETTE MALVA === */
 :root {
-  --malva-100: #f3eef8;
-  --malva-200: #ddd0ee;
-  --malva-400: #b08ecf;
-  --malva-600: #7c4fa0;
-  --malva-800: #4a2369;
-  --malva-900: #2e1143;
-  --accent:    #c084d4;
-  --white:     #ffffff;
-  --text-dark: #1e0e2e;
-  --text-mid:  #5a3e72;
-  --radius:    10px;
-  --shadow:    0 4px 18px rgba(124, 79, 160, 0.13);
+    --malva-scuro: #5A3A5A;
+    --malva-principale: #8B6B8B;
+    --malva-chiaro: #F3EEF3;
+    --malva-accento: #E8DDE8;
+    --sfondo: #FAF8FA;
+    --testo: #332533;
+    --bianco: #FFFFFF;
+    --shadow: 0 4px 12px rgba(90, 58, 90, 0.08);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+}
 
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: var(--malva-100);
-  color: var(--text-dark);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+    background-color: var(--sfondo);
+    color: var(--testo);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 20px;
+    gap: 15px;
 }
 
-/* HEADER */
-#header {
-  background: linear-gradient(135deg, var(--malva-800), var(--malva-600));
-  color: var(--white);
-  padding: 1.2rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow);
-}
-#header h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-#header .header-sub {
-  font-size: 0.85rem;
-  opacity: 0.8;
+/* Blocchi Strutturali Modernizzati */
+header, nav, aside, main, footer {
+    background: var(--bianco);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
 }
 
-/* NAVIGAZIONE */
-#navigazione {
-  background: var(--malva-600);
-  display: flex;
-  gap: 0.25rem;
-  padding: 0 1.5rem;
-}
-#navigazione a {
-  color: var(--malva-200);
-  text-decoration: none;
-  padding: 0.65rem 1.2rem;
-  font-size: 0.92rem;
-  font-weight: 500;
-  border-bottom: 3px solid transparent;
-  transition: color 0.2s, border-color 0.2s, background 0.2s;
-  border-radius: var(--radius) var(--radius) 0 0;
-}
-#navigazione a:hover,
-#navigazione a.active {
-  color: var(--white);
-  border-bottom-color: var(--accent);
-  background: rgba(255,255,255,0.08);
+header {
+    text-align: center;
+    color: var(--malva-scuro);
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-bottom: 4px solid var(--malva-principale);
 }
 
-/* LAYOUT PRINCIPALE */
-#main-layout {
-  display: flex;
-  flex: 1;
-  gap: 0;
+nav {
+    display: flex;
+    gap: 20px;
+    background: var(--malva-scuro);
 }
 
-/* SIDEBAR FILTRO RICERCA */
-#filtro-ricerca {
-  width: 240px;
-  min-width: 200px;
-  background: var(--malva-200);
-  border-right: 2px solid var(--malva-400);
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-#filtro-ricerca h3 {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--malva-800);
-  margin-bottom: 0.3rem;
+nav a {
+    color: var(--malva-chiaro);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
 }
 
-/* CONTENUTO / RISULTATI */
-#contenuto {
-  flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
+nav a:hover, nav a.active { 
+    color: var(--bianco); 
 }
 
-/* FOOTER */
-#footer {
-  background: var(--malva-900);
-  color: var(--malva-200);
-  text-align: center;
-  padding: 0.9rem;
-  font-size: 0.8rem;
-  letter-spacing: 0.3px;
+/* Layout Split a due colonne */
+.main-container {
+    display: flex;
+    flex: 1;
+    gap: 15px;
+}
+
+aside { 
+    width: 25%; 
+    background: var(--malva-chiaro); 
+}
+
+main { 
+    width: 75%; 
+}
+
+footer {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #776677;
+}
+
+.disclaimer { 
+    font-style: italic; 
+    font-size: 0.8rem; 
+    margin-top: 5px; 
+}
+
+/* Elementi di UI e Pulsanti */
+h2, h3 { 
+    margin-bottom: 15px; 
+    color: var(--malva-scuro); 
+}
+
+.btn-primary {
+    background: var(--malva-scuro);
+    color: var(--bianco);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover { 
+    background: var(--malva-principale); 
+}
+
+.btn-secondary { 
+    background: #e0e0e0; 
+    color: #333; 
+    border: none; 
+    padding: 8px 14px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+}
+
+/* Tabelle Moderne */
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 15px; 
+}
+
+th, td { 
+    padding: 12px 15px; 
+    text-align: left; 
+    border-bottom: 1px solid #ebdffd; 
+}
+
+th { 
+    background: var(--malva-accento); 
+    color: var(--malva-scuro); 
+    font-weight: 600; 
+}
+
+tr:hover { 
+    background-color: #fdfbfe; 
+}
+
+/* Input Form */
+.form-group { 
+    margin-bottom: 15px; 
+}
+
+.form-group label { 
+    display: block; 
+    margin-bottom: 6px; 
+    font-weight: 600; 
+    font-size: 0.9rem; 
+}
+
+.form-group input { 
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ccbccc; 
+    border-radius: 8px; 
+}
+
+.form-group input:focus { 
+    outline: none; 
+    border-color: var(--malva-principale); 
+}
+
+/* LA MODALE (Popup di Inserimento/Modifica) */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(40, 25, 40, 0.4);
+    display: none; 
+    justify-content: center; 
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-overlay.open { 
+    display: flex; 
+}
+
+.modal-content {
+    background: var(--bianco);
+    padding: 30px;
+    border-radius: 16px;
+    width: 500px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { 
+    from { transform: translateY(-20px); opacity: 0; } 
+    to { transform: translateY(0); opacity: 1; } 
+}
+
+/* Contenitori Statistiche */
+.stats-container { 
+    display: flex; 
+    gap: 15px; 
+    margin-bottom: 20px; 
+}
+
+.stat-card { 
+    background: var(--malva-accento); 
+    padding: 15px; 
+    border-radius: 8px; 
+    flex: 1; 
+    text-align: center; 
+}
+
+.stat-card h4 { 
+    font-size: 1.8rem; 
+    color: var(--malva-scuro); 
 }
