@@ -2,13 +2,32 @@
 // Inclusione del database
 require_once 'Includes/db.php';
 
-// 1. GESTIONE FILTRI COMPLETA
+// --- 1. GESTIONE SALVATAGGIO DATI DAL POPUP (SOLO AGGIUNTA) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modalAction'])) {
+    $titolo = trim($_POST['modalTitolo'] ?? '');
+    $inizio = $_POST['modalInizio'] ?? '';
+    $fine = $_POST['modalFine'] ?? '';
+    $azione = $_POST['modalAction'];
+
+    if ($azione === 'insert' && !empty($titolo)) {
+        $creatore = 'user_Admin'; 
+        $stmt = $pdo->prepare("INSERT INTO Quiz (titolo, creatore, dataInizio, dataFine) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$titolo, $creatore, $inizio, $fine]);
+        
+        // RECUPERA L'ID DEL QUIZ APPENA CREATO E TI CI PORTA DENTRO!
+        $new_id = $pdo->lastInsertId();
+        header("Location: views/quiz_dettaglio.php?codice=" . $new_id);
+        exit;
+    }
+}
+
+// --- 2. GESTIONE FILTRI IN TEMPO REALE ---
 $search_titolo = isset($_GET['search_titolo']) ? trim($_GET['search_titolo']) : '';
 $search_creatore = isset($_GET['search_creatore']) ? trim($_GET['search_creatore']) : '';
 $search_dataInizio = isset($_GET['search_dataInizio']) ? $_GET['search_dataInizio'] : '';
 $search_dataFine = isset($_GET['search_dataFine']) ? $_GET['search_dataFine'] : '';
 
-// 2. GESTIONE PAGINAZIONE
+// --- 3. GESTIONE PAGINAZIONE ---
 $limit = 15;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
@@ -62,19 +81,37 @@ $quizzes = $stmt->fetchAll();
     <title>UniBg - Dashboard Quiz</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
+        /* Paginazione e Bottoni Tabella */
         .pagination-container { display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 10px; }
         .pagination-btn { background-color: #6a3b5c; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; }
         .pagination-btn.disabled { opacity: 0.5; pointer-events: none; }
-        .action-btns a { margin-right: 5px; text-decoration: none; padding: 5px 10px; border-radius: 4px; color: white; font-size: 13px; font-weight: bold; }
-        .btn-modifica { background-color: #FF9800; }
+        
+        /* Bottoni Azioni */
+        .action-btns button { margin-right: 5px; text-decoration: none; padding: 6px 12px; border-radius: 4px; color: white; font-size: 13px; font-weight: bold; border: none; cursor: pointer; font-family: inherit; }
+        .btn-dettagli { background-color: #2196F3; }
+        .btn-dettagli:hover { background-color: #1976D2; }
         .btn-elimina { background-color: #F44336; }
+        .btn-elimina:hover { background-color: #D32F2F; }
+        
         .quiz-title-link { color: #6a3b5c; text-decoration: none; font-weight: bold; }
         .quiz-title-link:hover { text-decoration: underline; }
         
-        /* Nuovo stile per il bottone Aggiungi color Malva */
-        .btn-aggiungi-malva { background-color: #6a3b5c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; transition: 0.2s; }
-        .btn-aggiungi-malva:hover { background-color: #522d48; }
+        /* Struttura Header con Tasto Aggiungi */
         .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-aggiungi-malva { background-color: #6a3b5c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; transition: 0.2s; border: none; cursor: pointer; font-family: inherit; }
+        .btn-aggiungi-malva:hover { background-color: #522d48; }
+
+        /* Stili Pop-up Aggiungi Quiz */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-box { background: #fff; padding: 30px; border-radius: 8px; width: 100%; max-width: 450px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .close-modal { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: #888; background: none; border: none; padding: 0; line-height: 1; }
+        .close-modal:hover { color: #333; }
+        .form-group-modal { margin-bottom: 15px; text-align: left; }
+        .form-group-modal label { display: block; margin-bottom: 5px; font-weight: bold; color: #522d48; font-size: 14px; }
+        .form-group-modal input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        .btn-salva-malva { background-color: #6a3b5c; color: white; border: none; padding: 12px; width: 100%; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 15px; margin-top: 10px; transition: 0.2s; }
+        .btn-salva-malva:hover { background-color: #522d48; }
     </style>
 </head>
 <body>
@@ -113,7 +150,7 @@ $quizzes = $stmt->fetchAll();
         <main>
             <div class="header-actions">
                 <h2 style="margin: 0;">I tuoi Quiz</h2>
-                <a href="aggiungi_quiz.php" class="btn-aggiungi-malva">+ Aggiungi Nuovo Quiz</a>
+                <button onclick="apriModalAggiungi()" class="btn-aggiungi-malva">+ Aggiungi Nuovo Quiz</button>
             </div>
 
             <table class="quiz-table">
@@ -139,8 +176,15 @@ $quizzes = $stmt->fetchAll();
                                 <td><?php echo isset($quiz['dataInizio']) ? date('d/m/Y', strtotime($quiz['dataInizio'])) : 'N/D'; ?></td>
                                 <td><?php echo isset($quiz['dataFine']) ? date('d/m/Y', strtotime($quiz['dataFine'])) : 'N/D'; ?></td>
                                 <td class="action-btns">
-                                    <a href="modifica_quiz.php?id=<?php echo $quiz['codice']; ?>" class="btn-modifica">Modifica</a>
-                                    <a href="elimina_quiz.php?id=<?php echo $quiz['codice']; ?>" class="btn-elimina" onclick="return confirm('Sei sicuro di voler eliminare questo quiz?');">Elimina</a>
+                                    
+                                    <a href="views/quiz_dettaglio.php?codice=<?php echo $quiz['codice']; ?>" style="text-decoration: none;">
+                                        <button class="btn-dettagli">Gestisci / Modifica</button>
+                                    </a>
+                                    
+                                    <a href="elimina_quiz.php?id=<?php echo $quiz['codice']; ?>" style="text-decoration: none;">
+                                        <button class="btn-elimina" onclick="return confirm('Sei sicuro di voler eliminare questo quiz?');">Elimina</button>
+                                    </a>
+                                    
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -164,8 +208,36 @@ $quizzes = $stmt->fetchAll();
         </main>
     </div>
 
+    <div id="quizModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="close-modal" onclick="chiudiModal()">&times;</button>
+            <h2 style="margin-top: 0; color: #522d48;">Crea Nuovo Quiz</h2>
+            
+            <form id="modalForm" method="POST" action="index.php">
+                <input type="hidden" name="modalAction" value="insert">
+
+                <div class="form-group-modal">
+                    <label for="modalTitolo">Titolo del Quiz</label>
+                    <input type="text" id="modalTitolo" name="modalTitolo" required placeholder="Inserisci il titolo...">
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="modalInizio">Data di Apertura</label>
+                    <input type="date" id="modalInizio" name="modalInizio" required>
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="modalFine">Data di Chiusura</label>
+                    <input type="date" id="modalFine" name="modalFine" required>
+                </div>
+
+                <button type="submit" class="btn-salva-malva">Crea e Procedi alle Domande</button>
+            </form>
+        </div>
+    </div>
 
     <script>
+    // 1. GESTIONE RICERCA IN TEMPO REALE
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('filterForm');
         const inputs = form.querySelectorAll('input');
@@ -186,17 +258,31 @@ $quizzes = $stmt->fetchAll();
                         .then(html => {
                             const parser = new DOMParser();
                             const doc = parser.parseFromString(html, 'text/html');
-                            
-                            // Sostituisce solo la tabella e la paginazione
                             document.getElementById('tableBody').innerHTML = doc.getElementById('tableBody').innerHTML;
                             document.getElementById('paginationWrapper').innerHTML = doc.getElementById('paginationWrapper').innerHTML;
-                            
                             window.history.replaceState({}, '', url);
                         });
-                }, 300); // Ritardo di 300ms
+                }, 300); 
             });
         });
     });
+
+    // 2. GESTIONE APERTURA/CHIUSURA POP-UP
+    function apriModalAggiungi() {
+        document.getElementById('modalForm').reset();
+        document.getElementById('quizModal').style.display = 'flex';
+    }
+
+    function chiudiModal() {
+        document.getElementById('quizModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('quizModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
     </script>
 </body>
 </html>
