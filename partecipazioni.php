@@ -74,6 +74,7 @@ $partecipazioni = $stmt->fetchAll();
         <a href="index.php">Dashboard Quiz</a>
         <a href="utenti.php">Statistiche Utenti</a>
         <a href="partecipazioni.php" class="active">Registro Partecipazioni</a>
+        <a href = "lista_quiz.php"> Svolgi Quiz </a>
     </nav>
 
     <div class="main-container">

@@ -7,19 +7,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modalAction'])) {
     $titolo = trim($_POST['modalTitolo'] ?? '');
     $inizio = $_POST['modalInizio'] ?? '';
     $fine = $_POST['modalFine'] ?? '';
+    $creatore = $_POST['modalCreatore'] ?? ''; // MODIFICATO: Ora recupera il valore dal menù a tendina
     $azione = $_POST['modalAction'];
 
-    if ($azione === 'insert' && !empty($titolo)) {
-        $creatore = 'user_Admin'; 
-        $stmt = $pdo->prepare("INSERT INTO Quiz (titolo, creatore, dataInizio, dataFine) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$titolo, $creatore, $inizio, $fine]);
-        
-        // RECUPERA L'ID DEL QUIZ APPENA CREATO E TI CI PORTA DENTRO!
-        $new_id = $pdo->lastInsertId();
-        header("Location: views/quiz_dettaglio.php?codice=" . $new_id);
-        exit;
-    }
+    if ($azione === 'insert' && !empty($titolo)&& !empty($creatore)) { 
+
+    // 1. Cerca il numero di 'codice' più alto attualmente presente nella tabella
+    $stmtMax = $pdo->query("SELECT MAX(codice) FROM Quiz");
+    $maxId = $stmtMax->fetchColumn();
+
+    // 2. Calcola il nuovo ID (se la tabella è vuota parte da 1, altrimenti somma 1 al massimo)
+    $new_id = $maxId ? $maxId + 1 : 1;
+
+    // 3. Inserisci il quiz FORZANDO esplicitamente il nuovo ID calcolato
+    $stmt = $pdo->prepare("INSERT INTO Quiz (codice, titolo, creatore, dataInizio, dataFine) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$new_id, $titolo, $creatore, $inizio, $fine]);
+
+    // 4. Reindirizza
+    header("Location: views/quiz_dettaglio.php?codice=" . $new_id);
+    exit;
 }
+}
+
+// --- MODIFICATO: RECUPERO DI TUTTI GLI UTENTI PER POPOLARE IL MENÙ A TENDINA ---
+$stmtUtenti = $pdo->query("SELECT nomeUtente, nome, cognome FROM utente ORDER BY nome ASC, cognome ASC");
+$utenti = $stmtUtenti->fetchAll();
 
 // --- 2. GESTIONE FILTRI IN TEMPO REALE ---
 $search_titolo = isset($_GET['search_titolo']) ? trim($_GET['search_titolo']) : '';
@@ -109,7 +121,10 @@ $quizzes = $stmt->fetchAll();
         .close-modal:hover { color: #333; }
         .form-group-modal { margin-bottom: 15px; text-align: left; }
         .form-group-modal label { display: block; margin-bottom: 5px; font-weight: bold; color: #522d48; font-size: 14px; }
-        .form-group-modal input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        
+        /* MODIFICATO: Lo stile ora si applica anche agli elementi di tipo <select> del pop-up */
+        .form-group-modal input, .form-group-modal select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        
         .btn-salva-malva { background-color: #6a3b5c; color: white; border: none; padding: 12px; width: 100%; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 15px; margin-top: 10px; transition: 0.2s; }
         .btn-salva-malva:hover { background-color: #522d48; }
     </style>
@@ -122,6 +137,7 @@ $quizzes = $stmt->fetchAll();
         <a href="index.php" class="active">Dashboard Quiz</a>
         <a href="utenti.php">Statistiche Utenti</a>
         <a href="partecipazioni.php">Registro Partecipazioni</a>
+        <a href = "lista_quiz.php"> Svolgi Quiz </a>
     </nav>
 
     <div class="main-container">
@@ -219,6 +235,18 @@ $quizzes = $stmt->fetchAll();
                 <div class="form-group-modal">
                     <label for="modalTitolo">Titolo del Quiz</label>
                     <input type="text" id="modalTitolo" name="modalTitolo" required placeholder="Inserisci il titolo...">
+                </div>
+
+                <div class="form-group-modal">
+                    <label for="modalCreatore">Creatore del Quiz</label>
+                    <select id="modalCreatore" name="modalCreatore" required>
+                        <option value="" disabled selected>Seleziona un utente...</option>
+                        <?php foreach ($utenti as $u): ?>
+                            <option value="<?php echo htmlspecialchars($u['nomeUtente']); ?>">
+                                <?php echo htmlspecialchars($u['nome'] . ' ' . $u['cognome'] . ' (' . $u['nomeUtente'] . ')'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 
                 <div class="form-group-modal">

@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
         $num_opzioni = (int)$_POST['num_opzioni'];
         $corretta = (int)$_POST['risposta_corretta'];
         $id_domanda = !empty($_POST['id_domanda']) ? (int)$_POST['id_domanda'] : 0;
-
+        
         // CONTROLLO DUPLICATI CASE-INSENSITIVE
         $check_stmt = $pdo->prepare("SELECT numero FROM Domanda WHERE quiz = ? AND LOWER(TRIM(testo)) = LOWER(?) AND numero != ?");
         $check_stmt->execute([$codice, $testo, $id_domanda]);
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
                 $pdo->prepare("UPDATE Domanda SET testo = ? WHERE quiz = ? AND numero = ?")->execute([$testo, $codice, $id_domanda]);
                 $pdo->prepare("DELETE FROM Risposta WHERE quiz = ? AND domanda = ?")->execute([$codice, $id_domanda]);
             }
-
+            
             // Inserimento Risposte
             for ($i = 1; $i <= $num_opzioni; $i++) {
                 $punteggio = ($i === $corretta) ? $p_esatta : $p_errata;
@@ -107,8 +107,7 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         .option-item { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 5px; font-size: 14px; border: 1px solid transparent; }
         .is-correct { background: #e8f5e9; border-color: #c8e6c9; color: #2e7d32; }
         .is-wrong { background: #fdf2f2; border-color: #fbd5d5; color: #c81e1e; }
-
-        /* NUOVO STILE MODAL MIGLIORATO CON FIX FLEXBOX */
+        
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-box h2 { color: #522d48; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0e6ef; font-size: 22px; }
@@ -122,7 +121,6 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         
         .risposte-container { background: #fcfafb; border: 1px solid #f0e6ef; padding: 15px; border-radius: 8px; margin-top: 10px; width: 100%; box-sizing: border-box; }
         
-        /* FIX FLEXBOX FORZATO */
         .risposta-row { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 15px !important; margin-bottom: 12px !important; }
         .risposta-row:last-child { margin-bottom: 0 !important; }
         
@@ -135,136 +133,142 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
 </head>
 <body>
 
-    <header>Università degli Studi di Bergamo - Editor</header>
+<header>Università degli Studi di Bergamo - Editor</header>
 
-    <div class="sub-nav">
-        <a href="../index.php">&larr; Dashboard</a>
-        <span>|</span>
-        <span>Quiz: <?php echo htmlspecialchars($quiz['titolo']); ?></span>
-    </div>
+<div class="sub-nav">
+    <a href="../index.php">&larr; Dashboard</a>
+    <span>|</span>
+    <span>Quiz: <?php echo htmlspecialchars($quiz['titolo']); ?></span>
+</div>
 
-    <div class="main-container">
-        <aside>
-            <h2>Info Quiz</h2>
-            <p><strong>Creatore:</strong> @<?php echo htmlspecialchars($quiz['creatore']); ?></p>
-            <p><strong>Inizio:</strong> <?php echo date('d/m/Y', strtotime($quiz['dataInizio'])); ?></p>
-            <p><strong>Fine:</strong> <?php echo date('d/m/Y', strtotime($quiz['dataFine'])); ?></p>
-            <p><strong>Stato:</strong> <span style="color:<?php echo $color; ?>; font-weight:bold;"><?php echo $stato; ?></span></p>
-            <button onclick="document.getElementById('modalQuiz').style.display='flex'" class="btn-primary" style="background:#522d48">Modifica Impostazioni</button>
-        </aside>
+<div class="main-container">
+    <aside>
+        <h2>Info Quiz</h2>
+        <p><strong>Creatore:</strong> @<?php echo htmlspecialchars($quiz['creatore']); ?></p>
+        <p><strong>Inizio:</strong> <?php echo date('d/m/Y', strtotime($quiz['dataInizio'])); ?></p>
+        <p><strong>Fine:</strong> <?php echo date('d/m/Y', strtotime($quiz['dataFine'])); ?></p>
+        <p><strong>Stato:</strong> <span style="color:<?php echo $color; ?>; font-weight:bold;"><?php echo $stato; ?></span></p>
+        <button onclick="document.getElementById('modalQuiz').style.display='flex'" class="btn-primary" style="background:#522d48">Modifica Impostazioni</button>
+    </aside>
 
-        <main>
-            <?php if ($errore_msg): ?>
-                <div class="alert-error">
-                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                    <?php echo $errore_msg; ?>
+    <main>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2>Domande del Quiz</h2>
+            <button onclick="apriModalDomanda()" class="btn-primary" style="width:auto; margin-top:0; background:#4CAF50; padding: 10px 20px;">+ Aggiungi Domanda</button>
+        </div>
+        
+        <?php foreach ($domande as $idx => $d): ?>
+        <div class="question-card">
+            <div class="question-header">
+                <div class="question-info">
+                    <div class="question-number"><?php echo $idx + 1; ?></div>
+                    <span style="font-weight:bold; font-size: 15px; color: #333;"><?php echo htmlspecialchars($d['testo']); ?></span>
                 </div>
-            <?php endif; ?>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>Domande del Quiz</h2>
-                <button onclick="apriModalDomanda()" class="btn-primary" style="width:auto; margin-top:0; background:#4CAF50; padding: 10px 20px;">+ Aggiungi Domanda</button>
+                <div class="btn-group-row">
+                    <?php
+                    $q_risp = $pdo->prepare("SELECT * FROM Risposta WHERE quiz=? AND domanda=? ORDER BY numero ASC");
+                    $q_risp->execute([$codice, $d['numero']]);
+                    $rs = $q_risp->fetchAll();
+                    
+                    $testo_js = htmlspecialchars(json_encode($d['testo']), ENT_QUOTES, 'UTF-8');
+                    $risposte_js = htmlspecialchars(json_encode($rs), ENT_QUOTES, 'UTF-8');
+                    ?>
+                    <button class="btn-edit" onclick="apriModalModifica(<?php echo $d['numero']; ?>, <?php echo $testo_js; ?>, <?php echo $risposte_js; ?>)">Modifica</button>
+                    <a href="?codice=<?php echo $codice; ?>&elimina_domanda=<?php echo $d['numero']; ?>" class="btn-del" onclick="return confirm('Sicuro di voler eliminare questa domanda?')">Elimina</a>
+                </div>
             </div>
-
-            <?php foreach ($domande as $idx => $d): ?>
-                <div class="question-card">
-                    <div class="question-header">
-                        <div class="question-info">
-                            <div class="question-number"><?php echo $idx + 1; ?></div>
-                            <span style="font-weight:bold; font-size: 15px; color: #333;"><?php echo htmlspecialchars($d['testo']); ?></span>
-                        </div>
-                        <div class="btn-group-row">
-                            <?php 
-                                $q_risp = $pdo->prepare("SELECT * FROM Risposta WHERE quiz=? AND domanda=? ORDER BY numero ASC");
-                                $q_risp->execute([$codice, $d['numero']]);
-                                $rs = $q_risp->fetchAll();
-                                
-                                $testo_js = htmlspecialchars(json_encode($d['testo']), ENT_QUOTES, 'UTF-8');
-                                $risposte_js = htmlspecialchars(json_encode($rs), ENT_QUOTES, 'UTF-8');
-                            ?>
-                            <button class="btn-edit" onclick="apriModalModifica(<?php echo $d['numero']; ?>, <?php echo $testo_js; ?>, <?php echo $risposte_js; ?>)">Modifica</button>
-                            <a href="?codice=<?php echo $codice; ?>&elimina_domanda=<?php echo $d['numero']; ?>" class="btn-del" onclick="return confirm('Sicuro di voler eliminare questa domanda?')">Elimina</a>
-                        </div>
-                    </div>
-                    <div class="options-list">
-                        <?php foreach($rs as $r): ?>
-                            <div class="option-item <?php echo ($r['punteggio']>0) ? 'is-correct' : 'is-wrong'; ?>">
-                                <span>• <?php echo htmlspecialchars($r['testo']); ?></span>
-                                <span style="font-weight:bold;"><?php echo floatval($r['punteggio']); ?> pt</span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+            <div class="options-list">
+                <?php foreach($rs as $r): ?>
+                <div class="option-item <?php echo ($r['punteggio']>0) ? 'is-correct' : 'is-wrong'; ?>">
+                    <span>• <?php echo htmlspecialchars($r['testo']); ?></span>
+                    <span style="font-weight:bold;"><?php echo floatval($r['punteggio']); ?> pt</span>
                 </div>
-            <?php endforeach; ?>
-        </main>
-    </div>
-
-    <div id="modalDomanda" class="modal-overlay">
-        <div class="modal-box">
-            <button class="close" onclick="chiudiModal('modalDomanda')">&times;</button>
-            <h2 id="modalDomandaTitolo">Nuova Domanda</h2>
-            <form method="POST">
-                <input type="hidden" name="azione" value="salva_domanda">
-                <input type="hidden" name="id_domanda" id="form_id_domanda" value="">
-                
-                <div class="form-group">
-                    <label>Testo della Domanda</label>
-                    <input type="text" name="testo_domanda" id="form_testo" placeholder="Es. Cosa indica l'acronimo SQL?" required>
-                </div>
-
-                <div style="display:flex; gap:15px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Punti Risposta Esatta</label>
-                        <input type="number" name="punti_esatta" id="form_p_esatta" value="1" step="0.1" min="0" required>
-                    </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Punti Errata (Penalità)</label>
-                        <input type="number" name="punti_sbagliata" id="form_p_errata" value="0" step="0.1" max="0" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Quante opzioni di risposta vuoi inserire?</label>
-                    <select name="num_opzioni" id="form_num_opzioni" onchange="regolaOpzioni()">
-                        <option value="2">2 Opzioni</option>
-                        <option value="3">3 Opzioni</option>
-                        <option value="4" selected>4 Opzioni</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Seleziona la risposta esatta e scrivi le opzioni:</label>
-                    <div class="risposte-container" id="box_risposte">
-                        <?php for($i=1; $i<=4; $i++): ?>
-                        <div class="risposta-row" id="row_<?php echo $i; ?>">
-                            <input type="radio" name="risposta_corretta" value="<?php echo $i; ?>" id="radio_<?php echo $i; ?>" required title="Segna come corretta">
-                            <input type="text" name="risposta_<?php echo $i; ?>" id="input_<?php echo $i; ?>" placeholder="Opzione <?php echo $i; ?>">
-                        </div>
-                        <?php endfor; ?>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary" style="background-color: #4CAF50;">Salva Domanda</button>
-            </form>
+                <?php endforeach; ?>
+            </div>
         </div>
-    </div>
+        <?php endforeach; ?>
+    </main>
+</div>
 
-    <div id="modalQuiz" class="modal-overlay">
-        <div class="modal-box">
-            <button class="close" onclick="chiudiModal('modalQuiz')">&times;</button>
-            <h2>Impostazioni Quiz</h2>
-            <form method="POST">
-                <input type="hidden" name="azione" value="modifica_info">
-                <div class="form-group"><label>Titolo del Quiz</label><input type="text" name="titolo" value="<?php echo htmlspecialchars($quiz['titolo']); ?>" required></div>
-                <div class="form-group"><label>Data Inizio</label><input type="date" name="dataInizio" value="<?php echo $quiz['dataInizio']; ?>" required></div>
-                <div class="form-group"><label>Data Fine</label><input type="date" name="dataFine" value="<?php echo $quiz['dataFine']; ?>" required></div>
-                <button type="submit" class="btn-primary">Aggiorna Dati</button>
-            </form>
-        </div>
-    </div>
+<div id="modalDomanda" class="modal-overlay">
+    <div class="modal-box">
+        <button class="close" onclick="chiudiModal('modalDomanda')">&times;</button>
+        <h2 id="modalDomandaTitolo">Nuova Domanda</h2>
+        
+        <?php if ($errore_msg): ?>
+            <div class="alert-error" id="box_errore_duplicato">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <?php echo $errore_msg; ?>
+            </div>
+        <?php endif; ?>
 
-    <script>
-    function chiudiModal(id) { document.getElementById(id).style.display = 'none'; }
+        <form method="POST">
+            <input type="hidden" name="azione" value="salva_domanda">
+            <input type="hidden" name="id_domanda" id="form_id_domanda" value="<?php echo isset($_POST['id_domanda']) ? htmlspecialchars($_POST['id_domanda']) : ''; ?>">
+            
+            <div class="form-group">
+                <label>Testo della Domanda</label>
+                <input type="text" name="testo_domanda" id="form_testo" placeholder="Es. Cosa indica l'acronimo SQL?" value="<?php echo isset($_POST['testo_domanda']) ? htmlspecialchars($_POST['testo_domanda']) : ''; ?>" required>
+            </div>
+            
+            <div style="display:flex; gap:15px;">
+                <div class="form-group" style="flex:1">
+                    <label>Punti Risposta Esatta</label>
+                    <input type="number" name="punti_esatta" id="form_p_esatta" value="<?php echo isset($_POST['punti_esatta']) ? htmlspecialchars($_POST['punti_esatta']) : '1'; ?>" step="1" min="0" required>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Punti Errata (Penalità)</label>
+                    <input type="number" name="punti_sbagliata" id="form_p_errata" value="<?php echo isset($_POST['punti_sbagliata']) ? htmlspecialchars($_POST['punti_sbagliata']) : '0'; ?>" step="1" max="0" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Quante opzioni di risposta vuoi inserire?</label>
+                <select name="num_opzioni" id="form_num_opzioni" onchange="regolaOpzioni()">
+                    <option value="2" <?php echo (isset($_POST['num_opzioni']) && $_POST['num_opzioni'] == 2) ? 'selected' : ''; ?>>2 Opzioni</option>
+                    <option value="3" <?php echo (isset($_POST['num_opzioni']) && $_POST['num_opzioni'] == 3) ? 'selected' : ''; ?>>3 Opzioni</option>
+                    <option value="4" <?php echo (!isset($_POST['num_opzioni']) || $_POST['num_opzioni'] == 4) ? 'selected' : ''; ?>>4 Opzioni</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Seleziona la risposta esatta e scrivi le opzioni:</label>
+                <div class="risposte-container" id="box_risposte">
+                    <?php for($i=1; $i<=4; $i++): 
+                        $val_risposta = isset($_POST['risposta_'.$i]) ? htmlspecialchars($_POST['risposta_'.$i]) : '';
+                        $is_checked = (isset($_POST['risposta_corretta']) && $_POST['risposta_corretta'] == $i) || (!isset($_POST['risposta_corretta']) && $i == 1) ? 'checked' : '';
+                    ?>
+                    <div class="risposta-row" id="row_<?php echo $i; ?>">
+                        <input type="radio" name="risposta_corretta" value="<?php echo $i; ?>" id="radio_<?php echo $i; ?>" required title="Segna come corretta" <?php echo $is_checked; ?>>
+                        <input type="text" name="risposta_<?php echo $i; ?>" id="input_<?php echo $i; ?>" placeholder="Opzione <?php echo $i; ?>" value="<?php echo $val_risposta; ?>">
+                    </div>
+                    <?php endfor; ?>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-primary" style="background-color: #4CAF50;">Salva Domanda</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalQuiz" class="modal-overlay">
+    <div class="modal-box">
+        <button class="close" onclick="chiudiModal('modalQuiz')">&times;</button>
+        <h2>Impostazioni Quiz</h2>
+        <form method="POST">
+            <input type="hidden" name="azione" value="modifica_info">
+            <div class="form-group"><label>Titolo del Quiz</label><input type="text" name="titolo" value="<?php echo htmlspecialchars($quiz['titolo']); ?>" required></div>
+            <div class="form-group"><label>Data Inizio</label><input type="date" name="dataInizio" value="<?php echo $quiz['dataInizio']; ?>" required></div>
+            <div class="form-group"><label>Data Fine</label><input type="date" name="dataFine" value="<?php echo $quiz['dataFine']; ?>" required></div>
+            <button type="submit" class="btn-primary">Aggiorna Dati</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function chiudiModal(id) { 
+        document.getElementById(id).style.display = 'none'; 
+    }
 
     function regolaOpzioni() {
         const num = parseInt(document.getElementById('form_num_opzioni').value);
@@ -272,10 +276,10 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
             const row = document.getElementById('row_'+i);
             const input = document.getElementById('input_'+i);
             if(i <= num) {
-                row.style.display = 'flex';
+                row.style.setProperty('display', 'flex', 'important');
                 input.required = true;
             } else {
-                row.style.display = 'none';
+                row.style.setProperty('display', 'none', 'important');
                 input.required = false;
                 input.value = '';
             }
@@ -288,8 +292,12 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
     }
 
     function apriModalDomanda() {
+        // RESET E RIMOZIONE DEL VECCHIO ERRORE PERSISTENTE
+        const errBox = document.getElementById('box_errore_duplicato');
+        if (errBox) errBox.style.setProperty('display', 'none', 'important');
+
         document.getElementById('modalDomandaTitolo').innerText = "Nuova Domanda";
-        document.getElementById('form_id_domanda').value = "0"; 
+        document.getElementById('form_id_domanda').value = "0";
         document.getElementById('form_testo').value = "";
         document.getElementById('form_p_esatta').value = "1";
         document.getElementById('form_p_errata').value = "0";
@@ -302,6 +310,10 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
     }
 
     function apriModalModifica(id, testo, risposte) {
+        // RESET E RIMOZIONE DEL VECCHIO ERRORE PERSISTENTE ANCHE IN MODIFICA
+        const errBox = document.getElementById('box_errore_duplicato');
+        if (errBox) errBox.style.setProperty('display', 'none', 'important');
+
         document.getElementById('modalDomandaTitolo').innerText = "Modifica Domanda";
         document.getElementById('form_id_domanda').value = id;
         document.getElementById('form_testo').value = testo;
@@ -321,18 +333,21 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
                 document.getElementById('form_p_errata').value = pt;
             }
         });
-
+        
         document.getElementById('modalDomanda').style.display = 'flex';
         regolaOpzioni();
     }
 
-    window.onclick = function(e) { 
-        if(e.target.classList.contains('modal-overlay')) e.target.style.display = 'none'; 
+    window.onclick = function(e) {
+        if(e.target.classList.contains('modal-overlay')) e.target.style.display = 'none';
     }
-    
+
     <?php if($errore_msg !== ""): ?>
-        apriModalDomanda();
+        // SE IL DB SEGNALA IL DUPLICATO, APRE IL POP-UP MOSTRANDO L'ERRORE CORRENTE
+        document.getElementById('modalDomandaTitolo').innerText = "<?php echo (!empty($_POST['id_domanda']) && $_POST['id_domanda'] != '0') ? 'Modifica Domanda' : 'Nuova Domanda'; ?>";
+        document.getElementById('modalDomanda').style.display = 'flex';
+        regolaOpzioni();
     <?php endif; ?>
-    </script>
+</script>
 </body>
 </html>

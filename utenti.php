@@ -14,6 +14,7 @@
         <a href="index.php">Dashboard Quiz</a>
         <a href="utenti.php" class="active">Statistiche Utenti</a>
         <a href="partecipazioni.php">Registro Partecipazioni</a>
+        <a href = "lista_quiz.php"> Svolgi Quiz </a>
     </nav>
 
     <div class="main-container">
