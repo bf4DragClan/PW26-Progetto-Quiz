@@ -2,7 +2,7 @@
 require_once '../Includes/db.php';
 
 $codice = isset($_GET['codice']) ? (int)$_GET['codice'] : 0;
-$errore_msg = ""; // Variabile per gestire eventuali errori
+$errore_msg = ""; 
 
 // --- 1. GESTIONE ELIMINAZIONE DOMANDA ---
 if (isset($_GET['elimina_domanda'])) {
@@ -33,35 +33,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
         $corretta = (int)$_POST['risposta_corretta'];
         $id_domanda = !empty($_POST['id_domanda']) ? (int)$_POST['id_domanda'] : 0;
 
-        // CONTROLLO DUPLICATI (Case Insensitive) nello stesso quiz
-        $check_stmt = $pdo->prepare("SELECT numero FROM Domanda WHERE quiz = ? AND LOWER(testo) = LOWER(?) AND numero != ?");
+        // CONTROLLO DUPLICATI CASE-INSENSITIVE
+        $check_stmt = $pdo->prepare("SELECT numero FROM Domanda WHERE quiz = ? AND LOWER(TRIM(testo)) = LOWER(?) AND numero != ?");
         $check_stmt->execute([$codice, $testo, $id_domanda]);
         
         if ($check_stmt->rowCount() > 0) {
-            $errore_msg = "Attenzione: Esiste già una domanda identica in questo quiz!";
+            $errore_msg = "Attenzione: Esiste già una domanda identica in questo quiz (ignorando maiuscole/minuscole)!";
         } else {
-            // Procediamo con l'inserimento o aggiornamento
+            // Inserimento o aggiornamento
             if ($id_domanda === 0) {
-                // Inserimento Nuova
                 $stmt_num = $pdo->prepare("SELECT MAX(numero) FROM Domanda WHERE quiz = ?");
                 $stmt_num->execute([$codice]);
                 $id_domanda = ($stmt_num->fetchColumn() ?: 0) + 1;
                 $pdo->prepare("INSERT INTO Domanda (numero, quiz, testo) VALUES (?, ?, ?)")->execute([$id_domanda, $codice, $testo]);
             } else {
-                // Aggiornamento Esistente
                 $pdo->prepare("UPDATE Domanda SET testo = ? WHERE quiz = ? AND numero = ?")->execute([$testo, $codice, $id_domanda]);
-                // Puliamo le vecchie risposte
                 $pdo->prepare("DELETE FROM Risposta WHERE quiz = ? AND domanda = ?")->execute([$codice, $id_domanda]);
             }
 
-            // Inserimento Risposte (solo quelle necessarie)
+            // Inserimento Risposte
             for ($i = 1; $i <= $num_opzioni; $i++) {
                 $punteggio = ($i === $corretta) ? $p_esatta : $p_errata;
                 $stmt_risp = $pdo->prepare("INSERT INTO Risposta (numero, quiz, domanda, testo, punteggio) VALUES (?, ?, ?, ?, ?)");
                 $stmt_risp->execute([$i, $codice, $id_domanda, trim($_POST['risposta_' . $i]), $punteggio]);
             }
             
-            // Redirect per pulire il POST
             header("Location: quiz_dettaglio.php?codice=" . $codice);
             exit;
         }
@@ -112,7 +108,7 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         .is-correct { background: #e8f5e9; border-color: #c8e6c9; color: #2e7d32; }
         .is-wrong { background: #fdf2f2; border-color: #fbd5d5; color: #c81e1e; }
 
-        /* NUOVO STILE MODAL MIGLIORATO */
+        /* NUOVO STILE MODAL MIGLIORATO CON FIX FLEXBOX */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-box h2 { color: #522d48; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0e6ef; font-size: 22px; }
@@ -124,11 +120,14 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #d1c4cd; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 14px; transition: border-color 0.3s; }
         .form-group input:focus, .form-group select:focus { border-color: #6a3b5c; outline: none; box-shadow: 0 0 5px rgba(106,59,92,0.2); }
         
-        .risposte-container { background: #fcfafb; border: 1px solid #f0e6ef; padding: 15px; border-radius: 8px; margin-top: 10px; }
-        .risposta-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-        .risposta-row:last-child { margin-bottom: 0; }
-        .risposta-row input[type="radio"] { transform: scale(1.3); margin: 0 5px; cursor: pointer; accent-color: #4CAF50; }
-        .risposta-row input[type="text"] { flex: 1; margin: 0; }
+        .risposte-container { background: #fcfafb; border: 1px solid #f0e6ef; padding: 15px; border-radius: 8px; margin-top: 10px; width: 100%; box-sizing: border-box; }
+        
+        /* FIX FLEXBOX FORZATO */
+        .risposta-row { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 15px !important; margin-bottom: 12px !important; }
+        .risposta-row:last-child { margin-bottom: 0 !important; }
+        
+        .risposta-row input[type="radio"] { flex: 0 0 20px !important; width: 20px !important; height: 20px !important; margin: 0 !important; cursor: pointer; accent-color: #4CAF50; }
+        .risposta-row input[type="text"] { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; margin: 0 !important; }
         
         .btn-primary { background: #6a3b5c; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; margin-top: 10px; transition: background 0.2s; }
         .btn-primary:hover { background: #522d48; }
@@ -180,7 +179,6 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
                                 $q_risp->execute([$codice, $d['numero']]);
                                 $rs = $q_risp->fetchAll();
                                 
-                                // FIX: Codifica sicura per evitare che gli apici blocchino JavaScript
                                 $testo_js = htmlspecialchars(json_encode($d['testo']), ENT_QUOTES, 'UTF-8');
                                 $risposte_js = htmlspecialchars(json_encode($rs), ENT_QUOTES, 'UTF-8');
                             ?>
@@ -217,11 +215,11 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
                 <div style="display:flex; gap:15px;">
                     <div class="form-group" style="flex:1">
                         <label>Punti Risposta Esatta</label>
-                        <input type="number" name="punti_esatta" id="form_p_esatta" value="1" step="0.5" min="0" required>
+                        <input type="number" name="punti_esatta" id="form_p_esatta" value="1" step="0.1" min="0" required>
                     </div>
                     <div class="form-group" style="flex:1">
                         <label>Punti Errata (Penalità)</label>
-                        <input type="number" name="punti_sbagliata" id="form_p_errata" value="0" step="0.5" max="0" required>
+                        <input type="number" name="punti_sbagliata" id="form_p_errata" value="0" step="0.1" max="0" required>
                     </div>
                 </div>
 
@@ -283,7 +281,6 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
             }
         }
         
-        // Verifica se il radio selezionato è stato nascosto, in tal caso lo sposta sul primo
         const radioSpuntato = document.querySelector('input[name="risposta_corretta"]:checked');
         if (!radioSpuntato || radioSpuntato.parentElement.style.display === 'none') {
             document.getElementById('radio_1').checked = true;
@@ -292,7 +289,7 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
 
     function apriModalDomanda() {
         document.getElementById('modalDomandaTitolo').innerText = "Nuova Domanda";
-        document.getElementById('form_id_domanda').value = "0"; // 0 indica inserimento
+        document.getElementById('form_id_domanda').value = "0"; 
         document.getElementById('form_testo').value = "";
         document.getElementById('form_p_esatta').value = "1";
         document.getElementById('form_p_errata').value = "0";
@@ -316,7 +313,6 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
             const i = index + 1;
             document.getElementById('input_'+i).value = r.testo;
             
-            // Convertiamo in float per sicurezza prima del controllo
             const pt = parseFloat(r.punteggio);
             if(pt > 0) {
                 document.getElementById('radio_'+i).checked = true;
@@ -330,12 +326,10 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         regolaOpzioni();
     }
 
-    // Chiudi il modal se clicchi sullo sfondo scuro
     window.onclick = function(e) { 
         if(e.target.classList.contains('modal-overlay')) e.target.style.display = 'none'; 
     }
     
-    // Se c'è un errore, riapriamo automaticamente il modale per non far credere all'utente che non sia successo nulla
     <?php if($errore_msg !== ""): ?>
         apriModalDomanda();
     <?php endif; ?>
