@@ -151,6 +151,7 @@ $quizzes = $stmt->fetchAll();
         <a href="eseguiQuiz.php" class="active">Svolgi Quiz</a>
     </nav>
 
+
     <div class="main-container">
         <aside>
             <h2>Filtra i Quiz</h2>
@@ -250,5 +251,10 @@ $quizzes = $stmt->fetchAll();
         });
     });
     </script>
+  
+    <footer>
+        <div>Lista dei Quiz Disponibili</div>
+        <div class="disclaimer">&copy; 2026 - Progetto Universitario ad uso didattico - Università degli Studi di Bergamo</div>
+    </footer>
 </body>
 </html>

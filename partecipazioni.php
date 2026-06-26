@@ -77,6 +77,7 @@ $partecipazioni = $stmt->fetchAll();
         <a href = "lista_quiz.php"> Svolgi Quiz </a>
     </nav>
 
+
     <div class="main-container">
         <aside>
             <h2>Filtri Ricerca</h2>
@@ -169,5 +170,11 @@ $partecipazioni = $stmt->fetchAll();
         });
     });
     </script>
+
+    <footer>
+        <div>Visualizzazione Partecipazioni</div>
+        <div class="disclaimer">&copy; 2026 - Progetto Universitario ad uso didattico - Università degli Studi di Bergamo</div>
+    </footer>
+    
 </body>
 </html>

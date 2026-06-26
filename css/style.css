@@ -212,3 +212,15 @@ tr:hover {
     font-size: 1.8rem; 
     color: var(--malva-scuro); 
 }
+
+/* Footer Disclaimer */
+.footer-progetto {
+    text-align: center;
+    padding: 20px;
+    margin-top: 50px;
+    border-top: 2px solid #F3EEF3; /* Usiamo uno dei tuoi colori */
+    color: #5A3A5A; /* Il tuo colore Malva Scuro */
+    font-size: 0.85rem;
+    background-color: var(--bianco);
+    border-radius: 12px;
+}

@@ -349,5 +349,10 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         regolaOpzioni();
     <?php endif; ?>
 </script>
+
+    <footer>
+        <div>Dettaglio Quiz</div>
+        <div class="disclaimer">&copy; 2026 - Progetto Universitario ad uso didattico - Università degli Studi di Bergamo</div>
+    </footer>
 </body>
 </html>

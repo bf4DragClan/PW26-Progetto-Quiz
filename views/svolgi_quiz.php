@@ -135,6 +135,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <?php endif; ?>
     </div>
+    
+    <footer>
+        <div>Svolgimento Quiz</div>
+        <div class="disclaimer">&copy; 2026 - Progetto Universitario ad uso didattico - Università degli Studi di Bergamo</div>
+    </footer>
 
 </body>
 </html>

@@ -108,6 +108,8 @@ $quizzes = $stmt->fetchAll();
         .btn-salva-malva { background-color: #6a3b5c; color: white; border: none; padding: 12px; width: 100%; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
+
+
 <body>
 
     <header>Università degli Studi di Bergamo - Dashboard</header>
@@ -118,6 +120,7 @@ $quizzes = $stmt->fetchAll();
         <a href="partecipazioni.php">Registro Partecipazioni</a>
         <a href = "lista_quiz.php"> Svolgi Quiz </a>
     </nav>
+    
 
     <div class="main-container">
         <aside>
@@ -130,6 +133,7 @@ $quizzes = $stmt->fetchAll();
                 <button type="submit" style="margin-top:15px; width:100%; padding:8px; background:#6a3b5c; color:white; border:none; border-radius:4px; cursor:pointer;">Applica Filtri</button>
             </form>
         </aside>
+
 
         <main>
             <div class="header-actions">
@@ -186,5 +190,12 @@ $quizzes = $stmt->fetchAll();
             </form>
         </div>
     </div>
+
+    
+    <footer>
+        <div>Pannello di Amministrazione Quiz</div>
+        <div class="disclaimer">&copy; 2026 - Progetto Universitario ad uso didattico - Università degli Studi di Bergamo</div>
+    </footer>
+
 </body>
 </html>
