@@ -26,8 +26,8 @@ body {
     gap: 15px;
 }
 
-/* Blocchi Strutturali Modernizzati */
-header, nav, aside, main, footer {
+
+header,aside, main, footer {
     background: var(--bianco);
     border-radius: 12px;
     box-shadow: var(--shadow);
@@ -43,23 +43,19 @@ header {
 }
 
 nav {
+    background: var(--bianco);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+    
+    /* Proprietà per centrare i link */
     display: flex;
-    gap: 20px;
-    background: var(--malva-scuro);
+    justify-content: center;
+    align-items: center;
+    gap: 30px; /* Spazio tra i link */
 }
 
-nav a {
-    color: var(--malva-chiaro);
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s;
-}
 
-nav a:hover, nav a.active { 
-    color: var(--bianco); 
-}
-
-/* Layout Split a due colonne */
 .main-container {
     display: flex;
     flex: 1;
@@ -87,7 +83,7 @@ footer {
     margin-top: 5px; 
 }
 
-/* Elementi di UI e Pulsanti */
+
 h2, h3 { 
     margin-bottom: 15px; 
     color: var(--malva-scuro); 
@@ -117,7 +113,7 @@ h2, h3 {
     cursor: pointer; 
 }
 
-/* Tabelle Moderne */
+
 table { 
     width: 100%; 
     border-collapse: collapse; 
@@ -164,7 +160,7 @@ tr:hover {
     border-color: var(--malva-principale); 
 }
 
-/* LA MODALE (Popup di Inserimento/Modifica) */
+
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -193,7 +189,7 @@ tr:hover {
     to { transform: translateY(0); opacity: 1; } 
 }
 
-/* Contenitori Statistiche */
+
 .stats-container { 
     display: flex; 
     gap: 15px; 
@@ -218,8 +214,8 @@ tr:hover {
     text-align: center;
     padding: 20px;
     margin-top: 50px;
-    border-top: 2px solid #F3EEF3; /* Usiamo uno dei tuoi colori */
-    color: #5A3A5A; /* Il tuo colore Malva Scuro */
+    border-top: 2px solid #F3EEF3; 
+    color: #5A3A5A; 
     font-size: 0.85rem;
     background-color: var(--bianco);
     border-radius: 12px;

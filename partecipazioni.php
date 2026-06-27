@@ -68,7 +68,7 @@ $partecipazioni = $stmt->fetchAll();
 </head>
 <body>
 
-    <header>Università degli Studi di Bergamo - Dashboard</header>
+    <header>Università degli Studi di Bergamo - Partecipazioni</header>
 
     <nav>
         <a href="index.php">Dashboard Quiz</a>
@@ -101,7 +101,7 @@ $partecipazioni = $stmt->fetchAll();
                         <th>Nome Utente</th>
                         <th>Quiz Svolto</th>
                         <th>Data Sessione</th>
-                        <th>Punteggio Totale</th>
+                        
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -111,11 +111,7 @@ $partecipazioni = $stmt->fetchAll();
                                 <td><?php echo htmlspecialchars($p['utente']); ?></td>
                                 <td><?php echo htmlspecialchars($p['quiz_titolo']); ?></td>
                                 <td><?php echo date('d/m/Y', strtotime($p['data_partecipazione'])); ?></td>
-                                <td>
-                                    <span style="font-weight: bold;">
-                                        <?php echo $p['punteggio_totale'] !== null ? $p['punteggio_totale'] : 0; ?> pt
-                                    </span>
-                                </td>
+                                
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>

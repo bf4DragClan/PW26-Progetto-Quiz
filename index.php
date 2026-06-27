@@ -2,36 +2,43 @@
 // Inclusione del database
 require_once 'Includes/db.php';
 
-// --- 1. GESTIONE ELIMINAZIONE QUIZ (FIXATO) ---
-// Ora gestiamo l'eliminazione direttamente qui, senza bisogno di file esterni
+// Recupero utenti per il menù a tendina nel popup
+$stmt_utenti = $pdo->query("SELECT * FROM Utente ORDER BY cognome ASC");
+$utenti = $stmt_utenti->fetchAll();
+
+// --- 1. GESTIONE ELIMINAZIONE QUIZ ---
 if (isset($_GET['elimina_quiz'])) {
     $id_quiz = (int)$_GET['elimina_quiz'];
     
-    // Eliminiamo a cascata per evitare errori di vincolo (chiavi esterne)
+    // Eliminiamo a cascata per evitare errori di vincolo
     $pdo->prepare("DELETE FROM Risposta WHERE quiz = ?")->execute([$id_quiz]);
     $pdo->prepare("DELETE FROM Domanda WHERE quiz = ?")->execute([$id_quiz]);
     // Eliminiamo il quiz stesso
     $pdo->prepare("DELETE FROM Quiz WHERE codice = ?")->execute([$id_quiz]);
     
-    // Ricarica la pagina pulita
     header("Location: index.php");
     exit;
 }
 
-// --- 2. GESTIONE SALVATAGGIO DATI DAL POPUP (SOLO AGGIUNTA) ---
+// --- 2. GESTIONE SALVATAGGIO DATI DAL POPUP (FIXATO CON CALCOLO ID) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modalAction'])) {
     $titolo = trim($_POST['modalTitolo'] ?? '');
     $inizio = $_POST['modalInizio'] ?? '';
     $fine = $_POST['modalFine'] ?? '';
+    $creatore = $_POST['modalCreatore'] ?? '';
     $azione = $_POST['modalAction'];
 
-    if ($azione === 'insert' && !empty($titolo)) {
-        $creatore = 'user_Admin'; 
-        $stmt = $pdo->prepare("INSERT INTO Quiz (titolo, creatore, dataInizio, dataFine) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$titolo, $creatore, $inizio, $fine]);
+    if ($azione === 'insert' && !empty($titolo) && !empty($creatore)) {
+        // Calcoliamo manualmente il prossimo ID disponibile per evitare il duplicato '0'
+        $stmt_max = $pdo->query("SELECT MAX(codice) AS max_id FROM Quiz");
+        $row = $stmt_max->fetch();
+        $nuovo_codice = ($row['max_id'] !== null) ? (int)$row['max_id'] + 1 : 1;
+
+        // Inseriamo includendo il codice calcolato
+        $stmt = $pdo->prepare("INSERT INTO Quiz (codice, titolo, creatore, dataInizio, dataFine) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$nuovo_codice, $titolo, $creatore, $inizio, $fine]);
         
-        $new_id = $pdo->lastInsertId();
-        header("Location: views/quiz_dettaglio.php?codice=" . $new_id);
+        header("Location: views/quiz_dettaglio.php?codice=" . $nuovo_codice);
         exit;
     }
 }
@@ -47,7 +54,6 @@ $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] :
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// Conteggio totale
 $count_sql = "SELECT COUNT(*) FROM Quiz WHERE 1=1";
 $params = [];
 if (!empty($search_titolo)) { $count_sql .= " AND titolo LIKE ?"; $params[] = "%$search_titolo%"; }
@@ -62,7 +68,6 @@ $total_pages = ceil($total_rows / $limit);
 
 if ($page > $total_pages && $total_pages > 0) { $page = $total_pages; $offset = ($page - 1) * $limit; }
 
-// Recupero Quiz
 $sql = "SELECT * FROM Quiz WHERE 1=1";
 if (!empty($search_titolo)) $sql .= " AND titolo LIKE ?";
 if (!empty($search_creatore)) $sql .= " AND creatore LIKE ?";
@@ -104,11 +109,10 @@ $quizzes = $stmt->fetchAll();
         .close-modal { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; border: none; background: none; }
         .form-group-modal { margin-bottom: 15px; text-align: left; }
         .form-group-modal label { display: block; margin-bottom: 5px; font-weight: bold; color: #522d48; }
-        .form-group-modal input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .form-group-modal input, .form-group-modal select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .btn-salva-malva { background-color: #6a3b5c; color: white; border: none; padding: 12px; width: 100%; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
-
 
 <body>
 
@@ -133,7 +137,6 @@ $quizzes = $stmt->fetchAll();
                 <button type="submit" style="margin-top:15px; width:100%; padding:8px; background:#6a3b5c; color:white; border:none; border-radius:4px; cursor:pointer;">Applica Filtri</button>
             </form>
         </aside>
-
 
         <main>
             <div class="header-actions">
@@ -184,13 +187,25 @@ $quizzes = $stmt->fetchAll();
             <form method="POST" action="index.php">
                 <input type="hidden" name="modalAction" value="insert">
                 <div class="form-group-modal"><label>Titolo del Quiz</label><input type="text" name="modalTitolo" required></div>
+                
+                <div class="form-group-modal">
+                    <label>Creatore</label>
+                    <select name="modalCreatore" required>
+                        <option value="" disabled selected>-- Seleziona il creatore --</option>
+                        <?php foreach ($utenti as $u): ?>
+                            <option value="<?php echo htmlspecialchars($u['nomeUtente']); ?>">
+                                <?php echo htmlspecialchars($u['cognome'] . ' ' . $u['nome']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
                 <div class="form-group-modal"><label>Data di Apertura</label><input type="date" name="modalInizio" required></div>
                 <div class="form-group-modal"><label>Data di Chiusura</label><input type="date" name="modalFine" required></div>
                 <button type="submit" class="btn-salva-malva">Crea e Procedi</button>
             </form>
         </div>
     </div>
-
     
     <footer>
         <div>Pannello di Amministrazione Quiz</div>

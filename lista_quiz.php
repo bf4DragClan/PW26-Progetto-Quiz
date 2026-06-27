@@ -142,13 +142,13 @@ $quizzes = $stmt->fetchAll();
 </head>
 <body>
 
-    <header>Università degli Studi di Bergamo - Dashboard</header>
+    <header>Università degli Studi di Bergamo - Lista Quiz</header>
 
     <nav>
         <a href="index.php">Dashboard Quiz</a>
         <a href="utenti.php">Statistiche Utenti</a>
         <a href="partecipazioni.php">Registro Partecipazioni</a>
-        <a href="eseguiQuiz.php" class="active">Svolgi Quiz</a>
+        <a href="lista_quiz.php" class="active">Svolgi Quiz</a>
     </nav>
 
 
