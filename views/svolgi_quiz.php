@@ -4,10 +4,10 @@ require_once '../Includes/db.php';
 $codice_quiz = isset($_GET['codice']) ? (int)$_GET['codice'] : 0;
 $ha_consegnato = false;
 $punteggio_totale = 0;
-$risposte_utente = []; // Inizializzato per evitare errori
-$is_expired = false; // Flag per la scadenza
+$risposte_utente = []; // Conterrà le risposte selezionate dallo studente, indicizzate per numero di domanda
+$is_expired = false; // Indica se il quiz è scaduto, impedendo la consegna
 
-// --- RECUPERO DATI QUIZ ---
+// --- RECUPERO DEI DATI DEL QUIZ ---
 $stmt_quiz = $pdo->prepare("SELECT * FROM Quiz WHERE codice = ?");
 $stmt_quiz->execute([$codice_quiz]);
 $quiz = $stmt_quiz->fetch();
@@ -16,23 +16,25 @@ if (!$quiz) {
     die("Quiz non trovato.");
 }
 
-// Controllo Scadenza
+// Verifica della scadenza, confrontando la data di chiusura del quiz con la data odierna
 $oggi = date('Y-m-d');
 if ($quiz['dataFine'] < $oggi) {
     $is_expired = true;
 }
 
-// --- 1. GESTIONE CONSEGNA QUIZ E CALCOLO PUNTEGGIO ---
+// --- SEZIONE 1: CONSEGNA DEL QUIZ E CALCOLO DEL PUNTEGGIO ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['utente'])) {
     
-    // Sicurezza: blocchiamo il salvataggio se il quiz è scaduto
+    // Controllo di sicurezza lato server: la consegna viene comunque respinta se il quiz è scaduto,
+    // anche nel caso in cui i controlli lato client (campi disabilitati) siano stati elusi
     if ($is_expired) {
         die("Errore: Il quiz è scaduto e non può essere più consegnato.");
     }
 
     $studente = $_POST['utente'];
     
-    // Cicliamo tutti i dati inviati dal form
+    // Scorre tutti i campi del form, isolando quelli relativi alle risposte (prefisso "risp_")
+    // e accumulando il punteggio corrispondente a ciascuna opzione selezionata
     foreach ($_POST as $key => $value) {
         if (strpos($key, 'risp_') === 0) {
             $numero_domanda = str_replace('risp_', '', $key);
@@ -52,8 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['utente'])) {
     
     $ha_consegnato = true;
     
-    // --- INSERIMENTO DELLA PARTECIPAZIONE E DELLE RISPOSTE NEL DB ---
+    // --- REGISTRAZIONE DELLA PARTECIPAZIONE E DELLE RISPOSTE FORNITE ---
     try {
+        // Calcolo manuale del successivo identificativo disponibile, in assenza di una colonna AUTO_INCREMENT sulla chiave primaria
         $stmt_max = $pdo->query("SELECT MAX(codice) AS max_id FROM partecipazione");
         $row = $stmt_max->fetch();
         $nuovo_codice = ($row['max_id'] !== null) ? (int)$row['max_id'] + 1 : 1;
@@ -72,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['utente'])) {
     }
 }
 
-// Recupero domande
+// Recupero delle domande del quiz, mostrate in ordine casuale ad ogni caricamento della pagina
 try {
     $stmt_domande = $pdo->prepare("SELECT * FROM Domanda WHERE quiz = ? ORDER BY RAND()");
     $stmt_domande->execute([$codice_quiz]);
@@ -81,6 +84,7 @@ try {
     die("Errore database: " . $e->getMessage());
 }
 
+// Elenco utenti, necessario per popolare il menu a tendina di selezione dello studente
 $stmt_utenti = $pdo->query("SELECT * FROM Utente ORDER BY cognome ASC");
 $utenti = $stmt_utenti->fetchAll();
 ?>
@@ -139,6 +143,7 @@ $utenti = $stmt_utenti->fetchAll();
                     
                     <div class="risposte-grid">
                         <?php
+                        // Anche le opzioni di risposta vengono mostrate in ordine casuale, per evitare che la posizione suggerisca quella corretta
                         $stmt_r = $pdo->prepare("SELECT * FROM Risposta WHERE quiz = ? AND domanda = ? ORDER BY RAND()");
                         $stmt_r->execute([$codice_quiz, $d['numero']]);
                         $risposte = $stmt_r->fetchAll();

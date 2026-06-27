@@ -6,7 +6,7 @@
     <title>UniBg - Statistiche Utenti</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Stili aggiuntivi per la paginazione */
+        /* Stili per il blocco di paginazione */
         .pagination-container {
             text-align: right;
             margin-top: 20px;
@@ -79,17 +79,17 @@
     </footer>
 
     <script>
-        // Variabili globali per lo stato della pagina
+        // Stato globale della pagina: elenco completo degli utenti, elenco filtrato e pagina corrente
         let allUtenti = [];
         let filteredUtenti = [];
         let currentPage = 1;
-        const itemsPerPage = 15; // Puoi cambiare questo numero per mostrare più/meno righe
+        const itemsPerPage = 15; // Numero di righe visualizzate per pagina
 
         document.addEventListener('DOMContentLoaded', () => {
             fetch('api/utenti.php')
                 .then(res => res.json())
                 .then(data => {
-                    // Render statistiche
+                    // Aggiornamento del riepilogo statistico in base ai dati ricevuti dall'endpoint
                     document.getElementById('statsSummary').innerHTML = `
                         <div class="stat-card">
                             <h4>${data.totale_utenti}</h4>
@@ -101,15 +101,16 @@
                         </div>
                     `;
 
-                    // Salviamo i dati
+                    // Memorizzazione dei dati ricevuti, utilizzati come riferimento per il filtro e la paginazione lato client
                     allUtenti = data.utenti;
                     filteredUtenti = allUtenti; 
                     
-                    // Disegniamo la tabella
+                    // Costruzione iniziale della tabella
                     renderTable();
                 });
         });
 
+        // Ricostruisce il corpo della tabella in base alla pagina corrente e all'elenco filtrato
         function renderTable() {
             const tbody = document.getElementById('utentiTableBody');
             tbody.innerHTML = '';
@@ -137,6 +138,7 @@
             renderPagination(totalPages);
         }
 
+        // Genera i controlli di paginazione: indicatore della pagina corrente e pulsanti precedente/successivo
         function renderPagination(totalPages) {
             const paginationContainer = document.getElementById('paginationControls');
             if (!paginationContainer) return;
@@ -152,6 +154,7 @@
             paginationContainer.innerHTML = html;
         }
 
+        // Naviga alla pagina precedente, se disponibile, e aggiorna la tabella
         function prevPage() {
             if (currentPage > 1) {
                 currentPage--;
@@ -159,6 +162,7 @@
             }
         }
 
+        // Naviga alla pagina successiva, se disponibile, e aggiorna la tabella
         function nextPage() {
             const totalPages = Math.ceil(filteredUtenti.length / itemsPerPage);
             if (currentPage < totalPages) {
@@ -167,6 +171,7 @@
             }
         }
 
+        // Filtra gli utenti in base al testo digitato, confrontando username, nome completo ed email
         function filterUtentiTable() {
             const input = document.getElementById('userSearchInput').value.toLowerCase();
             
@@ -178,7 +183,7 @@
                 return username.includes(input) || fullName.includes(input) || email.includes(input);
             });
 
-            currentPage = 1; 
+            currentPage = 1; // La ricerca riparte sempre dalla prima pagina dei risultati
             renderTable();
         }
     </script>

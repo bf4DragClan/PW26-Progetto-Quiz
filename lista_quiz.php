@@ -1,20 +1,20 @@
 <?php
-// Inclusione del database
+// Inclusione della configurazione di connessione al database
 require_once 'Includes/db.php';
 
-// --- GESTIONE FILTRI IN TEMPO REALE ---
+// --- LETTURA DEI PARAMETRI DI FILTRO RICEVUTI VIA GET ---
 $search_titolo = isset($_GET['search_titolo']) ? trim($_GET['search_titolo']) : '';
 $search_creatore = isset($_GET['search_creatore']) ? trim($_GET['search_creatore']) : '';
 $search_dataInizio = isset($_GET['search_dataInizio']) ? $_GET['search_dataInizio'] : '';
 $search_dataFine = isset($_GET['search_dataFine']) ? $_GET['search_dataFine'] : '';
 
-// --- GESTIONE PAGINAZIONE ---
-$limit = 12; // Mostriamo 12 schede per pagina (multiplo di 3 e 4 per una griglia ordinata)
+// --- CONFIGURAZIONE DELLA PAGINAZIONE ---
+$limit = 12; // Numero di schede per pagina: multiplo di 3 e 4, per ottenere una griglia uniforme su diverse risoluzioni
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// Conteggio totale per i filtri applicati
+// Conteggio del numero totale di record corrispondenti ai filtri applicati, necessario per calcolare il numero di pagine
 $count_sql = "SELECT COUNT(*) FROM Quiz WHERE 1=1";
 if (!empty($search_titolo)) $count_sql .= " AND titolo LIKE :titolo";
 if (!empty($search_creatore)) $count_sql .= " AND creatore LIKE :creatore";
@@ -30,12 +30,13 @@ $count_stmt->execute();
 $total_rows = $count_stmt->fetchColumn();
 $total_pages = ceil($total_rows / $limit);
 
+// Normalizzazione della pagina richiesta, nel caso superi il numero massimo di pagine disponibili
 if ($page > $total_pages && $total_pages > 0) {
     $page = $total_pages;
     $offset = ($page - 1) * $limit;
 }
 
-// Recupero dei dati dal database
+// Recupero del sottoinsieme di record corrispondente alla pagina corrente, applicando gli stessi filtri della query di conteggio
 $sql = "SELECT * FROM Quiz WHERE 1=1";
 if (!empty($search_titolo)) $sql .= " AND titolo LIKE :titolo";
 if (!empty($search_creatore)) $sql .= " AND creatore LIKE :creatore";
@@ -62,7 +63,7 @@ $quizzes = $stmt->fetchAll();
     <title>UniBg - Seleziona un Quiz</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Griglia delle schede */
+        /* Layout a griglia per le schede dei quiz */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -70,7 +71,7 @@ $quizzes = $stmt->fetchAll();
             margin-top: 15px;
         }
 
-        /* Stile singola scheda */
+        /* Stile della singola scheda quiz */
         .quiz-card {
             background: #ffffff;
             border: 1px solid #e0cdd8;
@@ -78,8 +79,8 @@ $quizzes = $stmt->fetchAll();
             padding: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
-            border-left: 6px solid #6a3b5c; /* Richiamo al colore UniBg */
-            text-decoration: none; /* Rimuove la sottolineatura del link */
+            border-left: 6px solid #6a3b5c; /* Colore distintivo dell'istituto */
+            text-decoration: none; /* Rimozione della sottolineatura predefinita del link */
             color: inherit;
             display: flex;
             flex-direction: column;
@@ -133,7 +134,7 @@ $quizzes = $stmt->fetchAll();
             border-color: #6a3b5c;
         }
 
-        /* Paginazione */
+        /* Stili per il blocco di paginazione */
         .pagination-container { display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 10px; }
         .pagination-btn { background-color: #6a3b5c; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; }
         .pagination-btn.disabled { opacity: 0.5; pointer-events: none; }
@@ -221,22 +222,25 @@ $quizzes = $stmt->fetchAll();
     </div>
 
     <script>
-    // GESTIONE RICERCA IN TEMPO REALE SULLE SCHEDE
+    // Gestione della ricerca dinamica: i filtri vengono applicati via AJAX, aggiornando le schede senza ricaricare la pagina
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('filterForm');
         const inputs = form.querySelectorAll('input');
         let timeout = null;
 
+        // Impedisce il submit tradizionale del form, gestito interamente lato JavaScript
         form.addEventListener('submit', e => e.preventDefault());
 
         inputs.forEach(input => {
             input.addEventListener('input', () => {
+                // Debounce di 300ms: evita di inviare una richiesta ad ogni singolo carattere digitato
                 clearTimeout(timeout);
                 timeout = setTimeout(() => {
                     const url = new URL(window.location.pathname, window.location.origin);
                     const params = new URLSearchParams(new FormData(form));
                     url.search = params.toString();
 
+                    // Richiesta della pagina aggiornata e sostituzione del solo contenuto interessato (schede e paginazione)
                     fetch(url)
                         .then(res => res.text())
                         .then(html => {

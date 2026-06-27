@@ -6,7 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Gestione Modale
+// --- GESTIONE DELLA MODALE DI CREAZIONE/MODIFICA ---
+
+// Apre la modale in modalità "creazione", azzerando il form e rendendo modificabile il campo creatore
 function openAddModal() {
     resetForm();
     document.getElementById('modalTitle').innerText = "Crea Nuovo Quiz";
@@ -14,6 +16,8 @@ function openAddModal() {
     document.getElementById('quizModal').classList.add('open');
 }
 
+// Apre la modale in modalità "modifica", precompilando il form con i dati del quiz selezionato.
+// Il campo creatore viene reso non modificabile, poiché non può essere cambiato dopo la creazione del quiz.
 function openEditModal(codice, creatore, titolo, dataInizio, dataFine) {
     document.getElementById('modalTitle').innerText = "Modifica Quiz #" + codice;
     document.getElementById('quizId').value = codice;
@@ -29,7 +33,9 @@ function closeModal() {
     document.getElementById('quizModal').classList.remove('open');
 }
 
-// READ (Con invio Multi-Filtro)
+// --- LETTURA (con supporto a filtri multipli combinabili) ---
+
+// Recupera l'elenco dei quiz dall'API applicando i filtri correnti, e ridisegna la tabella
 function loadQuizzes() {
     const search = document.getElementById('searchInput').value;
     const creator = document.getElementById('creatorInput').value;
@@ -64,7 +70,10 @@ function loadQuizzes() {
         });
 }
 
-// CREATE & UPDATE
+// --- CREAZIONE E AGGIORNAMENTO ---
+
+// Invia i dati del form all'API: il metodo HTTP (POST o PUT) viene scelto in base alla presenza dell'ID,
+// che distingue una creazione da una modifica
 function saveQuiz() {
     const id = document.getElementById('quizId').value;
     const data = {
@@ -92,7 +101,9 @@ function saveQuiz() {
       });
 }
 
-// DELETE
+// --- ELIMINAZIONE ---
+
+// Elimina il quiz indicato, previa conferma dell'utente, e aggiorna l'elenco
 function deleteQuiz(codice) {
     if (confirm("Vuoi davvero eliminare questo quiz?")) {
         fetch('api/quiz.php', {
@@ -103,6 +114,7 @@ function deleteQuiz(codice) {
     }
 }
 
+// Azzera i campi di filtro e ricarica l'elenco completo dei quiz
 function clearQuizFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('creatorInput').value = '';
@@ -110,6 +122,7 @@ function clearQuizFilters() {
     loadQuizzes();
 }
 
+// Ripristina il form ai valori predefiniti, in preparazione di una nuova creazione
 function resetForm() {
     document.getElementById('quizForm').reset();
     document.getElementById('quizId').value = '';

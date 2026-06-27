@@ -1,26 +1,26 @@
 <?php
-// Inclusione del database
+// Inclusione della configurazione di connessione al database
 require_once 'Includes/db.php';
 
-// Recupero utenti per il menù a tendina nel popup
+// Recupero dell'elenco utenti, necessario per popolare il menu a tendina del creatore nel modulo di inserimento
 $stmt_utenti = $pdo->query("SELECT * FROM Utente ORDER BY cognome ASC");
 $utenti = $stmt_utenti->fetchAll();
 
-// --- 1. GESTIONE ELIMINAZIONE QUIZ ---
+// --- SEZIONE 1: ELIMINAZIONE DI UN QUIZ ---
 if (isset($_GET['elimina_quiz'])) {
     $id_quiz = (int)$_GET['elimina_quiz'];
     
-    // Eliminiamo a cascata per evitare errori di vincolo
+    // Eliminazione in cascata delle entità collegate, necessaria per rispettare i vincoli di integrità referenziale
     $pdo->prepare("DELETE FROM Risposta WHERE quiz = ?")->execute([$id_quiz]);
     $pdo->prepare("DELETE FROM Domanda WHERE quiz = ?")->execute([$id_quiz]);
-    // Eliminiamo il quiz stesso
+    // Eliminazione del record del quiz, una volta rimosse tutte le dipendenze
     $pdo->prepare("DELETE FROM Quiz WHERE codice = ?")->execute([$id_quiz]);
     
     header("Location: index.php");
     exit;
 }
 
-// --- 2. GESTIONE SALVATAGGIO DATI DAL POPUP (FIXATO CON CALCOLO ID) ---
+// --- SEZIONE 2: SALVATAGGIO DEI DATI INSERITI TRAMITE IL MODULO MODALE ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modalAction'])) {
     $titolo = trim($_POST['modalTitolo'] ?? '');
     $inizio = $_POST['modalInizio'] ?? '';
@@ -29,12 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modalAction'])) {
     $azione = $_POST['modalAction'];
 
     if ($azione === 'insert' && !empty($titolo) && !empty($creatore)) {
-        // Calcoliamo manualmente il prossimo ID disponibile per evitare il duplicato '0'
+        // Calcolo manuale del successivo identificativo disponibile, in assenza di una colonna AUTO_INCREMENT sulla chiave primaria
         $stmt_max = $pdo->query("SELECT MAX(codice) AS max_id FROM Quiz");
         $row = $stmt_max->fetch();
         $nuovo_codice = ($row['max_id'] !== null) ? (int)$row['max_id'] + 1 : 1;
 
-        // Inseriamo includendo il codice calcolato
+        // Inserimento del nuovo quiz utilizzando l'identificativo calcolato in precedenza
         $stmt = $pdo->prepare("INSERT INTO Quiz (codice, titolo, creatore, dataInizio, dataFine) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$nuovo_codice, $titolo, $creatore, $inizio, $fine]);
         
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modalAction'])) {
     }
 }
 
-// --- 3. GESTIONE FILTRI E PAGINAZIONE ---
+// --- SEZIONE 3: GESTIONE DEI FILTRI DI RICERCA E DELLA PAGINAZIONE ---
 $search_titolo = isset($_GET['search_titolo']) ? trim($_GET['search_titolo']) : '';
 $search_creatore = isset($_GET['search_creatore']) ? trim($_GET['search_creatore']) : '';
 $search_dataInizio = isset($_GET['search_dataInizio']) ? $_GET['search_dataInizio'] : '';
@@ -54,6 +54,7 @@ $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] :
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
+// Conteggio del numero totale di record corrispondenti ai filtri, necessario per calcolare il numero di pagine
 $count_sql = "SELECT COUNT(*) FROM Quiz WHERE 1=1";
 $params = [];
 if (!empty($search_titolo)) { $count_sql .= " AND titolo LIKE ?"; $params[] = "%$search_titolo%"; }
@@ -66,8 +67,10 @@ $count_stmt->execute($params);
 $total_rows = $count_stmt->fetchColumn();
 $total_pages = ceil($total_rows / $limit);
 
+// Normalizzazione della pagina richiesta, nel caso superi il numero massimo di pagine disponibili
 if ($page > $total_pages && $total_pages > 0) { $page = $total_pages; $offset = ($page - 1) * $limit; }
 
+// Recupero del sottoinsieme di record corrispondente alla pagina corrente, applicando gli stessi filtri della query di conteggio
 $sql = "SELECT * FROM Quiz WHERE 1=1";
 if (!empty($search_titolo)) $sql .= " AND titolo LIKE ?";
 if (!empty($search_creatore)) $sql .= " AND creatore LIKE ?";

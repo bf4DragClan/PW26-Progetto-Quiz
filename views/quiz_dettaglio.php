@@ -4,7 +4,7 @@ require_once '../Includes/db.php';
 $codice = isset($_GET['codice']) ? (int)$_GET['codice'] : 0;
 $errore_msg = ""; 
 
-// --- 1. GESTIONE ELIMINAZIONE DOMANDA ---
+// --- SEZIONE 1: ELIMINAZIONE DI UNA DOMANDA ---
 if (isset($_GET['elimina_domanda'])) {
     $id_domanda = (int)$_GET['elimina_domanda'];
     $pdo->prepare("DELETE FROM Risposta WHERE quiz = ? AND domanda = ?")->execute([$codice, $id_domanda]);
@@ -13,10 +13,10 @@ if (isset($_GET['elimina_domanda'])) {
     exit;
 }
 
-// --- 2. GESTIONE AGGIORNAMENTI (POST) ---
+// --- SEZIONE 2: GESTIONE DELLE RICHIESTE POST ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
     
-    // AZIONE: Modifica Info Quiz
+    // Azione: aggiornamento delle informazioni generali del quiz (titolo e periodo di svolgimento)
     if ($_POST['azione'] === 'modifica_info') {
         $stmt = $pdo->prepare("UPDATE Quiz SET titolo = ?, dataInizio = ?, dataFine = ? WHERE codice = ?");
         $stmt->execute([trim($_POST['titolo']), $_POST['dataInizio'], $_POST['dataFine'], $codice]);
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
         exit;
     }
     
-    // AZIONE: Aggiungi o Modifica Domanda
+    // Azione: inserimento di una nuova domanda, oppure modifica di una domanda esistente, con le relative risposte
     if ($_POST['azione'] === 'salva_domanda') {
         $testo = trim($_POST['testo_domanda']);
         $p_esatta = floatval($_POST['punti_esatta']);
@@ -33,14 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
         $corretta = (int)$_POST['risposta_corretta'];
         $id_domanda = !empty($_POST['id_domanda']) ? (int)$_POST['id_domanda'] : 0;
         
-        // CONTROLLO DUPLICATI CASE-INSENSITIVE
+        // Verifica dell'unicità del testo della domanda all'interno del quiz, ignorando maiuscole/minuscole e spazi superflui
         $check_stmt = $pdo->prepare("SELECT numero FROM Domanda WHERE quiz = ? AND LOWER(TRIM(testo)) = LOWER(?) AND numero != ?");
         $check_stmt->execute([$codice, $testo, $id_domanda]);
         
         if ($check_stmt->rowCount() > 0) {
             $errore_msg = "Attenzione: Esiste già una domanda identica in questo quiz (ignorando maiuscole/minuscole)!";
         } else {
-            // Inserimento o aggiornamento
+            // Distinzione tra inserimento di una nuova domanda e aggiornamento di una esistente, in base alla presenza dell'ID
             if ($id_domanda === 0) {
                 $stmt_num = $pdo->prepare("SELECT MAX(numero) FROM Domanda WHERE quiz = ?");
                 $stmt_num->execute([$codice]);
@@ -48,10 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
                 $pdo->prepare("INSERT INTO Domanda (numero, quiz, testo) VALUES (?, ?, ?)")->execute([$id_domanda, $codice, $testo]);
             } else {
                 $pdo->prepare("UPDATE Domanda SET testo = ? WHERE quiz = ? AND numero = ?")->execute([$testo, $codice, $id_domanda]);
+                // Le risposte precedenti vengono rimosse e ricreate da zero, per semplificare la gestione di un numero di opzioni variabile
                 $pdo->prepare("DELETE FROM Risposta WHERE quiz = ? AND domanda = ?")->execute([$codice, $id_domanda]);
             }
             
-            // Inserimento Risposte
+            // Inserimento delle risposte associate alla domanda, attribuendo il punteggio in base all'opzione segnata come corretta
             for ($i = 1; $i <= $num_opzioni; $i++) {
                 $punteggio = ($i === $corretta) ? $p_esatta : $p_errata;
                 $stmt_risp = $pdo->prepare("INSERT INTO Risposta (numero, quiz, domanda, testo, punteggio) VALUES (?, ?, ?, ?, ?)");
@@ -64,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['azione'])) {
     }
 }
 
-// RECUPERO DATI
+// --- RECUPERO DEI DATI DEL QUIZ E DELLE DOMANDE ASSOCIATE ---
 $quiz = $pdo->prepare("SELECT * FROM Quiz WHERE codice = ?");
 $quiz->execute([$codice]);
 $quiz = $quiz->fetch();
@@ -74,6 +75,7 @@ $domande = $pdo->prepare("SELECT * FROM Domanda WHERE quiz = ? ORDER BY numero A
 $domande->execute([$codice]);
 $domande = $domande->fetchAll();
 
+// Determinazione dello stato del quiz (programmato, attivo, scaduto) confrontando le date di apertura/chiusura con la data odierna
 $oggi = date('Y-m-d');
 if ($oggi < $quiz['dataInizio']) { $stato = "Programmato"; $color = "#FF9800"; }
 elseif ($oggi <= $quiz['dataFine']) { $stato = "Attivo"; $color = "#4CAF50"; }
@@ -170,6 +172,7 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
                     $q_risp->execute([$codice, $d['numero']]);
                     $rs = $q_risp->fetchAll();
                     
+                    // Serializzazione di testo e risposte in JSON, per poterli passare in sicurezza come argomenti dell'evento onclick
                     $testo_js = htmlspecialchars(json_encode($d['testo']), ENT_QUOTES, 'UTF-8');
                     $risposte_js = htmlspecialchars(json_encode($rs), ENT_QUOTES, 'UTF-8');
                     ?>
@@ -266,10 +269,13 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
 </div>
 
 <script>
+    // Chiude la modale indicata, nascondendola
     function chiudiModal(id) { 
         document.getElementById(id).style.display = 'none'; 
     }
 
+    // Mostra o nasconde le righe delle opzioni di risposta in base al numero scelto,
+    // e assicura che la risposta corretta selezionata sia sempre tra le opzioni visibili
     function regolaOpzioni() {
         const num = parseInt(document.getElementById('form_num_opzioni').value);
         for(let i=1; i<=4; i++) {
@@ -291,8 +297,9 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         }
     }
 
+    // Apre la modale in modalità "nuova domanda", azzerando tutti i campi del form
     function apriModalDomanda() {
-        // RESET E RIMOZIONE DEL VECCHIO ERRORE PERSISTENTE
+        // Nasconde un eventuale messaggio di errore residuo, mostrato da un precedente tentativo di salvataggio
         const errBox = document.getElementById('box_errore_duplicato');
         if (errBox) errBox.style.setProperty('display', 'none', 'important');
 
@@ -309,8 +316,9 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         regolaOpzioni();
     }
 
+    // Apre la modale in modalità "modifica domanda", precompilando testo, punteggi e opzioni di risposta esistenti
     function apriModalModifica(id, testo, risposte) {
-        // RESET E RIMOZIONE DEL VECCHIO ERRORE PERSISTENTE ANCHE IN MODIFICA
+        // Nasconde un eventuale messaggio di errore residuo, anche quando si entra in modalità modifica
         const errBox = document.getElementById('box_errore_duplicato');
         if (errBox) errBox.style.setProperty('display', 'none', 'important');
 
@@ -321,6 +329,7 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         const num = risposte.length;
         document.getElementById('form_num_opzioni').value = num;
         
+        // Per ciascuna risposta, individua quella corretta (punteggio positivo) per impostare il punteggio "esatta" e il radio corrispondente
         risposte.forEach((r, index) => {
             const i = index + 1;
             document.getElementById('input_'+i).value = r.testo;
@@ -338,12 +347,13 @@ else { $stato = "Scaduto"; $color = "#F44336"; }
         regolaOpzioni();
     }
 
+    // Chiude una modale aperta se l'utente clicca sull'area scura esterna al riquadro
     window.onclick = function(e) {
         if(e.target.classList.contains('modal-overlay')) e.target.style.display = 'none';
     }
 
     <?php if($errore_msg !== ""): ?>
-        // SE IL DB SEGNALA IL DUPLICATO, APRE IL POP-UP MOSTRANDO L'ERRORE CORRENTE
+        // Se il server ha rilevato una domanda duplicata, riapre automaticamente la modale mostrando l'errore corrente
         document.getElementById('modalDomandaTitolo').innerText = "<?php echo (!empty($_POST['id_domanda']) && $_POST['id_domanda'] != '0') ? 'Modifica Domanda' : 'Nuova Domanda'; ?>";
         document.getElementById('modalDomanda').style.display = 'flex';
         regolaOpzioni();

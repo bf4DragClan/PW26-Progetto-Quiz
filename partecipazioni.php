@@ -1,18 +1,18 @@
 <?php
-// Inclusione del database
+// Inclusione della configurazione di connessione al database
 require_once 'Includes/db.php';
 
-// 1. GESTIONE FILTRI
+// --- LETTURA DEI PARAMETRI DI FILTRO RICEVUTI VIA GET ---
 $search_utente = isset($_GET['search_utente']) ? trim($_GET['search_utente']) : '';
 $search_data = isset($_GET['search_data']) ? $_GET['search_data'] : '';
 
-// 2. GESTIONE PAGINAZIONE
+// --- CONFIGURAZIONE DELLA PAGINAZIONE ---
 $limit = 15; 
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// Conteggio record totali
+// Conteggio del numero totale di record corrispondenti ai filtri applicati, necessario per calcolare il numero di pagine
 $count_sql = "SELECT COUNT(*) FROM Partecipazione p WHERE 1=1";
 if (!empty($search_utente)) $count_sql .= " AND p.utente LIKE :utente";
 if (!empty($search_data)) $count_sql .= " AND p.data = :data";
@@ -24,12 +24,13 @@ $count_stmt->execute();
 $total_rows = $count_stmt->fetchColumn();
 $total_pages = ceil($total_rows / $limit);
 
+// Normalizzazione della pagina richiesta, nel caso superi il numero massimo di pagine disponibili
 if ($page > $total_pages && $total_pages > 0) {
     $page = $total_pages;
     $offset = ($page - 1) * $limit;
 }
 
-// Query dati
+// Recupero delle partecipazioni con il relativo quiz e il punteggio complessivo ottenuto, tramite le opportune JOIN
 $sql = "SELECT p.utente, p.data AS data_partecipazione, q.titolo AS quiz_titolo, SUM(r.punteggio) AS punteggio_totale
         FROM Partecipazione p
         JOIN Quiz q ON p.quiz = q.codice
@@ -40,6 +41,7 @@ $sql = "SELECT p.utente, p.data AS data_partecipazione, q.titolo AS quiz_titolo,
 if (!empty($search_utente)) $sql .= " AND p.utente LIKE :utente";
 if (!empty($search_data)) $sql .= " AND p.data = :data";
 
+// Raggruppamento per partecipazione, necessario per l'aggregazione del punteggio tramite SUM
 $sql .= " GROUP BY p.codice, p.utente, p.data, q.titolo 
           ORDER BY data_partecipazione DESC 
           LIMIT :limit OFFSET :offset";
@@ -61,6 +63,7 @@ $partecipazioni = $stmt->fetchAll();
     <title>UniBg - Registro Partecipazioni</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
+        /* Stili per il blocco di paginazione */
         .pagination-container { display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 10px; }
         .pagination-btn { background-color: #6a3b5c; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; }
         .pagination-btn.disabled { opacity: 0.5; pointer-events: none; }
@@ -135,21 +138,25 @@ $partecipazioni = $stmt->fetchAll();
     </div>
 
     <script>
+    // Gestione della ricerca dinamica: i filtri vengono applicati via AJAX, aggiornando la tabella senza ricaricare la pagina
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('filterForm');
         const inputs = form.querySelectorAll('input');
         let timeout = null;
 
+        // Impedisce il submit tradizionale del form, gestito interamente lato JavaScript
         form.addEventListener('submit', e => e.preventDefault());
 
         inputs.forEach(input => {
             input.addEventListener('input', () => {
+                // Debounce di 300ms: evita di inviare una richiesta ad ogni singolo carattere digitato
                 clearTimeout(timeout);
                 timeout = setTimeout(() => {
                     const url = new URL(window.location.pathname, window.location.origin);
                     const params = new URLSearchParams(new FormData(form));
                     url.search = params.toString();
 
+                    // Richiesta della pagina aggiornata e sostituzione del solo contenuto interessato (tabella e paginazione)
                     fetch(url)
                         .then(res => res.text())
                         .then(html => {
